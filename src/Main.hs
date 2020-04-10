@@ -28,17 +28,24 @@ runPhysical (PhysicalState (CollObj iPC iP) iE) =
     p <- playerRun iP -< input
     returnA -< PhysicalState (CollObj iPC p) iE
 
-run :: GameState -> SF InputState GameState
-run (GameState (CameraState iZ) p alive) =
+run :: GameState -> SF InputState (GameState, Event GameState)
+run orig@(GameState (CameraState iZ) p alive) =
   proc input -> do
     physical <- runPhysical p -< input
-    alive <- collidedSwitch -< physical
+    alive <- collidedDeathSwitch -< physical
     returnA -<
-      ( GameState
-          (CameraState iZ)
-          physical
-          alive
+      ((GameState
+        (CameraState iZ)
+        physical
+        alive),
+        if alive then NoEvent else Event orig
       )
+
+runDeathResetSwitch :: GameState -> SF InputState GameState
+runDeathResetSwitch game =
+  switch
+    (run game)
+    runDeathResetSwitch
 
 collided :: SF PhysicalState (Bool, Event ())
 collided = proc (PhysicalState player enemies) -> do
@@ -51,16 +58,16 @@ collided = proc (PhysicalState player enemies) -> do
         False -> NoEvent
     )
 
-collidedSwitch :: SF PhysicalState Bool
-collidedSwitch =
+collidedDeathSwitch :: SF PhysicalState Bool
+collidedDeathSwitch =
   switch
     collided
-    (\a -> constant False)
+    (\_ -> constant False)
 
 update :: GameState -> SF (Event [S.Event]) (GameState, Bool)
 update origGameState = proc events -> do
   newInputState <- accumHoldBy inputStateUpdate defaultKeybinds -< events
-  gameState <- run origGameState -< newInputState
+  gameState <- runDeathResetSwitch origGameState -< newInputState
   returnA -<
     ( gameState,
       (fromJust (newInputState ^. I.quit ^? pressed))
