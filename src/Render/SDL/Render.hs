@@ -23,7 +23,7 @@ render renderer res (GameState (CameraState zoomLevel) (PhysicalState player ene
     -- sequence_ $ (join . join) $ (fmap . fmap . fmap) renderPt $ getCollisionPointsPos <$> enemies
 
     S.present renderer
-    return exit
+    pure exit
   where
     -- Static stuff center rot at top left
     renderObj' = renderObj (player ^. (obj . pos)) (flip getSprite res) (fromIntegral zoomLevel) renderer
