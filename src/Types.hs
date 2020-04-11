@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE TemplateHaskell #-}
 
 module Types where
@@ -6,6 +7,8 @@ import Control.Lens
 import SDL as S
 import SDL.Font (Font)
 import FRPEngine.Types
+import Data.Aeson
+import GHC.Generics
 
 data Resources
   = Resources
@@ -20,7 +23,7 @@ data SpriteSelect
   = Sfont
   | SobjectSprite
   | SobjectSprite2
-  deriving (Show)
+  deriving (Generic, Show)
 
 getSprite :: Obj a SpriteSelect -> Resources -> S.Texture
 getSprite obj =
@@ -32,7 +35,8 @@ data CameraState
   = CameraState
       { _zoomLevel :: Int
       }
-  deriving (Show)
+  deriving (Generic, Show)
+
 
 data PhysicalState
   = PhysicalState
@@ -40,7 +44,7 @@ data PhysicalState
     player :: CollObj Double SpriteSelect,
     enemies :: [CollObj Double SpriteSelect]
   }
-  deriving (Show)
+  deriving (Generic, Show)
 
 makeLenses ''PhysicalState
 
@@ -50,6 +54,17 @@ data GameState
         _physicalState :: PhysicalState,
         _alive :: Bool
       }
-  deriving (Show)
+  deriving (Generic, Show)
 
 makeLenses ''GameState
+
+instance FromJSON GameState
+instance FromJSON CameraState
+instance FromJSON PhysicalState
+instance FromJSON SpriteSelect
+
+
+instance ToJSON GameState
+instance ToJSON CameraState
+instance ToJSON PhysicalState
+instance ToJSON SpriteSelect

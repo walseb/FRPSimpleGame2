@@ -6,6 +6,7 @@ module Main
 where
 
 import Actor
+import Control.Concurrent.MVar
 import Control.Lens
 import Control.Monad.IO.Class
 import Data.Maybe
@@ -20,6 +21,7 @@ import Render.SDL.Render
 import qualified SDL as S
 import qualified SDL.Font as F
 import SDL.Image as SI
+import System.IO.Unsafe
 import Types
 
 runPhysical :: PhysicalState -> SF InputState PhysicalState
@@ -34,10 +36,11 @@ run orig@(GameState (CameraState iZ) p alive) =
     physical <- runPhysical p -< input
     alive <- collidedDeathSwitch -< physical
     returnA -<
-      ((GameState
-        (CameraState iZ)
-        physical
-        alive),
+      ( ( GameState
+            (CameraState iZ)
+            physical
+            alive
+        ),
         if alive then NoEvent else Event orig
       )
 
@@ -64,14 +67,26 @@ collidedDeathSwitch =
     collided
     (\_ -> constant False)
 
-update :: GameState -> SF (Event [S.Event]) (GameState, Bool)
-update origGameState = proc events -> do
-  newInputState <- accumHoldBy inputStateUpdate defaultKeybinds -< events
-  gameState <- runDeathResetSwitch origGameState -< newInputState
-  returnA -<
-    ( gameState,
-      (fromJust (newInputState ^. I.quit ^? pressed))
-    )
+update :: GameState -> MVar GameState -> SF (Event [S.Event]) (GameState, Bool)
+update origGameState mvar =
+  proc events -> do
+    newInputState <- accumHoldBy inputStateUpdate defaultKeybinds -< events
+    gameState <- runDeathResetSwitch origGameState -< newInputState
+    let quit = (fromJust (newInputState ^. I.quit ^? pressed))
+    let quit' =
+          if quit
+            then seq (unsafePerformIO (putMVar mvar gameState)) True
+            else False
+    returnA -<
+      ( gameState,
+        quit'
+      )
+
+loadOldGameState :: Maybe GameState -> MVar GameState -> SF (Event [S.Event]) (GameState, Bool)
+loadOldGameState Nothing =
+  update initialGame
+loadOldGameState (Just origGameState) =
+  update origGameState
 
 getResources :: (MonadIO m) => S.Renderer -> m Resources
 getResources renderer =
@@ -87,10 +102,15 @@ getResources renderer =
     spritePath = "data/enemy.png"
     spritePath2 = "data/player.png"
 
-main =
+main = do
+  myMVar <- newEmptyMVar
   runSDL
     True
     S.Windowed
     "FRP Lunar Lander"
     getResources
-    (\renderer senseInput resources -> reactimate (pure NoEvent) senseInput (\_ -> render renderer resources) (update initialGame))
+    ( \savedGameState renderer senseInput resources -> do
+        _ <- reactimate (pure NoEvent) senseInput (\_ -> render renderer resources) (loadOldGameState savedGameState myMVar)
+        mvar <- takeMVar myMVar
+        pure mvar
+    )

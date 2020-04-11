@@ -34,4 +34,7 @@ executable FRPSimpleGame2
 
                 , bearriver
                 , template-haskell
-                , FRPEngine
+                , FRPEngine == 0.2.*
+
+                -- Hotswapping
+                , aeson
