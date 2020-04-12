@@ -37,12 +37,21 @@ data CameraState
       }
   deriving (Generic, Show)
 
+data StretchCollObj a spriteSelect =
+  StretchCollObj
+  {
+    _origSize :: V2 a,
+    _collObj :: CollObj a spriteSelect
+  }
+  deriving(Generic, Show)
+
+makeLenses ''StretchCollObj
 
 data PhysicalState
   = PhysicalState
   {
-    player :: CollObj Double SpriteSelect,
-    enemies :: [CollObj Double SpriteSelect]
+    _player :: StretchCollObj Double SpriteSelect,
+    _enemies :: [StretchCollObj Double SpriteSelect]
   }
   deriving (Generic, Show)
 
@@ -62,9 +71,11 @@ instance FromJSON GameState
 instance FromJSON CameraState
 instance FromJSON PhysicalState
 instance FromJSON SpriteSelect
+instance (FromJSON a, FromJSON spriteSelect) => FromJSON (StretchCollObj a spriteSelect)
 
 
 instance ToJSON GameState
 instance ToJSON CameraState
 instance ToJSON PhysicalState
 instance ToJSON SpriteSelect
+instance (ToJSON a, ToJSON spriteSelect) => ToJSON (StretchCollObj a spriteSelect)

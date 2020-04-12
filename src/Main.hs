@@ -25,13 +25,14 @@ import System.IO.Unsafe
 import Types
 
 runPhysical :: PhysicalState -> SF InputState PhysicalState
-runPhysical (PhysicalState (CollObj iPC iP) iE) =
+runPhysical state@(PhysicalState (StretchCollObj origSize (CollObj iPC iP)) iE) =
   proc input -> do
-    p <- playerRun iP -< input
-    returnA -< PhysicalState (CollObj iPC p) iE
+    p <- playerRun iP origSize -< input
+    returnA -< (player . collObj . obj) .~ p $ state
+      -- PhysicalState (StretchCollObj origSize (CollObj iPC p)) iE
 
 run :: GameState -> SF InputState (GameState, Event GameState)
-run orig@(GameState (CameraState iZ) p alive) =
+run (GameState (CameraState iZ) p alive) =
   proc input -> do
     physical <- runPhysical p -< input
     alive <- collidedDeathSwitch -< physical
@@ -41,8 +42,7 @@ run orig@(GameState (CameraState iZ) p alive) =
             physical
             alive
         ),
-        if alive then NoEvent else Event orig
-      )
+        if alive then NoEvent else Event initialGame)
 
 runDeathResetSwitch :: GameState -> SF InputState GameState
 runDeathResetSwitch game =
@@ -53,7 +53,7 @@ runDeathResetSwitch game =
 collided :: SF PhysicalState (Bool, Event ())
 collided = proc (PhysicalState player enemies) -> do
   let hasCollided =
-        or (collidesObj player <$> enemies)
+        or (collidesObj (player ^. collObj) <$> ((^. collObj) <$> enemies))
   returnA -<
     ( not hasCollided,
       case hasCollided of

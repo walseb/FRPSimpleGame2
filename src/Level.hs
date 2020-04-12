@@ -24,25 +24,28 @@ type Slice = [Bool]
 
 type Lvl = [Slice]
 
-build :: (RealFloat a) => Lvl -> [CollObj a SpriteSelect]
+build :: (RealFloat a) => Lvl -> [StretchCollObj a SpriteSelect]
 build lvl = join $ zipWith (flip buildSlice) lvl y
   where
     -- 99 is here to fix the gap problem with integer rendering positions
-    y = realToFrac <$> [0,99 ..]
+    y = realToFrac <$> [0, 99 ..]
 
-buildSlice :: (RealFloat a) => a -> Slice -> [CollObj a SpriteSelect]
+buildSlice :: (RealFloat a) => a -> Slice -> [StretchCollObj a SpriteSelect]
 buildSlice x things@(a : b : c : d) =
   catMaybes $ buildSingle <$> (zip pos things)
   where
-    y = realToFrac <$> [-1,98 .. 607]
+    y = realToFrac <$> [-1, 98 .. 607]
     pos = liftA2 V2 [x] y
 
-buildSingle :: (RealFloat a) => (V2 a, Bool) -> Maybe (CollObj a SpriteSelect)
+buildSingle :: (RealFloat a) => (V2 a, Bool) -> Maybe (StretchCollObj a SpriteSelect)
 buildSingle ((V2 x y), True) =
   Just
-    ( CollObj
-        boxColl
-        (Obj (V2 x y) (V2 100 100) 0 SobjectSprite True)
+    ( StretchCollObj
+        (V2 100 100)
+        ( CollObj
+            boxColl
+            (Obj (V2 x y) 0 0 (V2 100 100) SobjectSprite True)
+        )
     )
 buildSingle ((V2 x y), False) =
   Nothing
@@ -52,74 +55,81 @@ initialGame =
   GameState
     (CameraState 3)
     ( PhysicalState
-        ( CollObj
-            boxColl
-            (Obj (V2 0 300) (V2 100 100) 0 SobjectSprite2 True)
+        ( StretchCollObj
+            (V2 100 100)
+            ( CollObj
+                boxColl
+                (Obj (V2 0 300) 0 0 (V2 100 100) SobjectSprite2 True)
+            )
         )
         ( [ -- Terrain
-            ( CollObj
-                boxColl
-                (Obj (V2 (-10000) 641) (V2 50000000 5000) 0 SobjectSprite False)
+            ( StretchCollObj
+                (V2 100 100)
+                ( CollObj
+                    boxColl
+                    (Obj (V2 (-10000) 641) 0 0 (V2 50000000 5000) SobjectSprite False)
+                )
             ),
-            ( CollObj
-                boxColl
-                (Obj (V2 (-10000) (-5050)) (V2 50000000 5000) 0 SobjectSprite False)
+            ( StretchCollObj
+                (V2 100 100)
+                ( CollObj
+                    boxColl
+                    (Obj (V2 (-10000) (-5050)) 0 0 (V2 50000000 5000) SobjectSprite False)
+                )
             )
           ]
-            ++ (build
-               [
-
-                 -- Ok so to transform this quickly just turn all to False, then search and replace False with True. Then you just press y or n until you have the layout you want
-                 -- New intro
-                 [True, False, False, False, False, False, True],
-                 [True, True, False, False, False, True, True],
-                 [True, True, True, False, True, True, True],
-                 [True, True, True, False, True, True, True],
-                 [True, True, True, False, True, True, True],
-                 [True, True, True, False, True, True, True],
-                 [True, True, True, False, True, True, True],
-                 [True, True, True, False, True, True, True],
-                 [True, True, True, False, True, True, True],
-                 [True, True, True, False, True, True, True],
-                 [True, True, True, False, True, True, True],
-                 [True, True, True, False, True, True, True],
-                 [True, True, True, False, True, True, True],
-                 [True, True, True, False, True, True, True],
-                 [False, False, False, False, False, False, False],
-                 [False, False, False, False, False, False, False],
-                 [False, False, False, False, False, False, False],
-                 [False, False, False, False, False, False, False],
-                 [False, False, False, True, False, False, False],
-                 [False, False, False, False, False, False, False],
-                 [False, False, False, False, False, False, False],
-                 [False, False, False, True, True, True, True],
-                 [False, False, False, False, False, False, False],
-                 [False, False, False, False, False, False, False],
-                 [False, False, False, False, False, False, False],
-                 [True, True, True, True, False, False, False],
-                 [False, False, False, True, False, False, False],
-                 [False, False, False, True, False, False, False],
-                 [False, False, False, True, False, False, False],
-                 [False, False, False, True, False, False, False],
-                 [False, False, False, True, False, False, False],
-                 [False, False, False, True, False, False, False],
-                 [False, False, False, True, False, False, False],
-                 [False, False, False, False, False, True, False],
-                 [False, False, False, False, False, False, False],
-                 [False, False, False, False, False, False, False],
-                 [False, False, False, False, False, False, False],
-                 [False, False, False, False, False, False, False],
-                 [False, False, False, False, False, False, False],
-                 [False, False, False, False, False, False, False],
-                 [False, False, False, False, False, False, False],
-                 [False, False, False, False, False, False, False],
-                 [False, False, False, False, False, False, False],
-                 [False, False, False, False, False, False, False],
-                 [False, False, False, False, False, False, False],
-                 [False, False, False, False, False, False, False],
-                 [False, False, False, False, False, False, False]
-               ]
-              )
+            ++ ( build
+                   [
+                     -- New intro
+                     [True, False, False, False, False, False, True],
+                     [True, True, False, False, False, True, True],
+                     [True, True, True, False, True, True, True],
+                     [True, True, True, False, True, True, True],
+                     [True, True, True, False, True, True, True],
+                     [True, True, True, False, True, True, True],
+                     [True, True, True, False, True, True, True],
+                     [True, True, True, False, True, True, True],
+                     [True, True, True, False, True, True, True],
+                     [True, True, True, False, True, True, True],
+                     [True, True, True, False, True, True, True],
+                     [True, True, True, False, True, True, True],
+                     [True, True, True, False, True, True, True],
+                     [True, True, True, False, True, True, True],
+                     [False, False, False, False, False, False, False],
+                     [False, False, False, False, False, False, False],
+                     [False, False, False, False, False, False, False],
+                     [False, False, False, False, False, False, False],
+                     [False, False, False, True, False, False, False],
+                     [False, False, False, False, False, False, False],
+                     [False, False, False, False, False, False, False],
+                     [False, False, False, True, True, True, True],
+                     [False, False, False, False, False, False, False],
+                     [False, False, False, False, False, False, False],
+                     [False, False, False, False, False, False, False],
+                     [True, True, True, True, False, False, False],
+                     [False, False, False, True, False, False, False],
+                     [False, False, False, True, False, False, False],
+                     [False, False, False, True, False, False, False],
+                     [False, False, False, True, False, False, False],
+                     [False, False, False, True, False, False, False],
+                     [False, False, False, True, False, False, False],
+                     [False, False, False, True, False, False, False],
+                     [False, False, False, False, False, True, False],
+                     [False, False, False, False, False, False, False],
+                     [False, False, False, False, False, False, False],
+                     [False, False, False, False, False, False, False],
+                     [False, False, False, False, False, False, False],
+                     [False, False, False, False, False, False, False],
+                     [False, False, False, False, False, False, False],
+                     [False, False, False, False, False, False, False],
+                     [False, False, False, False, False, False, False],
+                     [False, False, False, False, False, False, False],
+                     [False, False, False, False, False, False, False],
+                     [False, False, False, False, False, False, False],
+                     [False, False, False, False, False, False, False],
+                     [False, False, False, False, False, False, False]
+                   ]
+               )
           -- Semi-random level
           -- ++ ((\a -> CollObj boxColl (Obj (pureRandom a) (V2 100 100) 0 SobjectSprite True)) <$> [2 .. 13] ++ [15 .. 31] ++ [34 .. 49] ++ [51 .. 56] ++ [58 .. 91])
         )

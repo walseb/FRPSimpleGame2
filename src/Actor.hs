@@ -23,19 +23,19 @@ type Pos a = V2 a
 type Size a = V2 a
 type Vel a = V2 a
 
-move :: (RealFloat a) => (Pos a, Size a) -> SF (MoveKeys a) (Pos a, Size a)
-move (V2 iPX iPY, size) = proc dir -> do
+move :: (RealFloat a) => (Pos a, Size a, Vel a, Size a) -> SF (MoveKeys a) (Pos a, Size a, Vel a)
+move (V2 iPX iPY, size, a, origSize) = proc dir -> do
   -- Pos
-  vel <- moveNoBackSwitch 0 -< dir
+  vel <- moveNoBackSwitch a -< dir
   posX' <- integralFrom (V1 iPX) -< V1 (vel ^. _x)
   posY <- integralFrom (V1 iPY) -< V1 (vel ^. _y)
 
   -- Size
-  size <- sizeRun size -< vel
+  size <- sizeRun origSize -< vel
 
   returnA -<
     let pos = coerce <$> V2 posX' posY
-     in (pos, size)
+     in (pos, size, vel)
 
 moveVel :: (RealFloat a) => Vel a -> SF (MoveKeys a) (Vel a, Event (Vel a))
 moveVel initVel = proc dir -> do
@@ -49,13 +49,13 @@ moveNoBackSwitch initVel =
     moveNoBackSwitch
 
 sizeRun :: (RealFloat a) => Size a -> SF (V2 a) (Size a)
-sizeRun size@(V2 sizeX sizeY) = proc vel -> do
+sizeRun origSize = proc vel -> do
   let vel' = (V2 (vel ^. _x) ((vel ^. _y) - (vel ^. _x)))
-  returnA -< (size / 2) + (keepMinimumSize <$> ((size / 2) + (vel' * sizeSpeed)))
+  returnA -< (origSize / 2) + (keepMinimumSize <$> ((origSize / 2) + (vel' * sizeSpeed)))
     where
       keepMinimumSize a = if a < 0 then 0 else a
 
-playerRun :: (RealFloat a) => Obj a _b -> SF InputState (Obj a _b)
-playerRun initObj = proc input -> do
-  (pos', size') <- move (initObj ^. pos, initObj ^. size) -< vectorizeMovement (input ^. movement)
-  returnA -< (pos .~ pos') . (size .~ size') $ initObj
+playerRun :: (RealFloat a) => Obj a _b -> Size a -> SF InputState (Obj a _b)
+playerRun initObj origSize = proc input -> do
+  (pos', size', vel') <- move (initObj ^. pos, initObj ^. size, initObj ^. vel, origSize) -< vectorizeMovement (input ^. movement)
+  returnA -< (pos .~ pos') . (size .~ size') . (vel .~ vel') $ initObj

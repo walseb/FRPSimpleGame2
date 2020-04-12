@@ -14,10 +14,10 @@ render renderer res (GameState (CameraState zoomLevel) (PhysicalState player ene
     S.clear renderer
 
     case alive of
-      True -> renderSpr (player ^. obj)
+      True -> renderSpr (player ^. (collObj . obj))
       False -> pure ()
 
-    sequence_ $ renderSpr . (^. obj) <$> enemies
+    sequence_ $ renderSpr . (^. (collObj . obj)) <$> enemies
 
     -- sequence_ $ (join . join) $ (fmap . fmap . fmap) renderPt $ getCollisionPointsPos <$> [player]
     -- sequence_ $ (join . join) $ (fmap . fmap . fmap) renderPt $ getCollisionPointsPos <$> enemies
@@ -26,8 +26,8 @@ render renderer res (GameState (CameraState zoomLevel) (PhysicalState player ene
     pure exit
   where
     -- Static stuff center rot at top left
-    renderObj' = renderObj (player ^. (obj . pos)) (flip getSprite res) (fromIntegral zoomLevel) renderer
+    renderObj' = renderObj (player ^. (collObj . obj . pos)) (flip getSprite res) (fromIntegral zoomLevel) renderer
     renderSpr = renderObj'
     -- renderTerr = renderObj' False
     -- renderText' = renderText renderer (res ^. font)
-    renderPt pos = renderObj' (Obj pos (V2 50 50) 0 SobjectSprite2 True)
+    renderPt pos = renderObj' (Obj pos 0 0 (V2 50 50) SobjectSprite2 True)
