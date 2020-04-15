@@ -53,7 +53,7 @@ buildSingle ((V2 x y), False) =
 initialGame :: GameState
 initialGame =
   GameState
-    (CameraState 3)
+    (CameraState 1)
     ( PhysicalState
         ( StretchCollObj
             (V2 100 100)
@@ -117,7 +117,7 @@ initialGame =
                      [False, False, False, False, False, True, False],
                      [False, False, False, False, False, False, False],
                      [False, False, False, False, False, False, False],
-                     [False, False, False, False, False, False, False],
+                     [True, False, True, True, True, False, True],
                      [False, False, False, False, False, False, False],
                      [False, False, False, False, False, False, False],
                      [False, False, False, False, False, False, False],

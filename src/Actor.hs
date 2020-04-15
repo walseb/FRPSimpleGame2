@@ -5,7 +5,7 @@ module Actor where
 import Control.Lens
 import Data.Coerce
 import FRP.Yampa
-import FRPEngine.Input.Interpreter (vectorizeMovement)
+import FRPEngine.Input.Utils (vectorizeMovement)
 import FRPEngine.Input.Types
 import FRPEngine.Types
 import FRPEngine.YampaUtils.Types ()
@@ -22,6 +22,9 @@ type MoveKeys a = V2 a
 type Pos a = V2 a
 type Size a = V2 a
 type Vel a = V2 a
+
+xMove :: (RealFloat a) => a
+xMove = 50
 
 move :: (RealFloat a) => (Pos a, Size a, Vel a, Size a) -> SF (MoveKeys a) (Pos a, Size a, Vel a)
 move (V2 iPX iPY, size, a, origSize) = proc dir -> do
@@ -40,7 +43,7 @@ move (V2 iPX iPY, size, a, origSize) = proc dir -> do
 moveVel :: (RealFloat a) => Vel a -> SF (MoveKeys a) (Vel a, Event (Vel a))
 moveVel initVel = proc dir -> do
   vel <- integralFrom initVel -< (dir * speed)
-  returnA -< (vel, if (vel ^. _x) < 0 then Event (V2 0 (vel ^. _y)) else NoEvent)
+  returnA -< (vel, if (vel ^. _x) < xMove then Event (V2 xMove (vel ^. _y)) else NoEvent)
 
 moveNoBackSwitch :: (RealFloat a) => Vel a -> SF (MoveKeys a) (Vel a)
 moveNoBackSwitch initVel =

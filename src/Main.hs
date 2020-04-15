@@ -15,8 +15,10 @@ import FRPEngine.Collision.GJK
 import FRPEngine.Init
 import FRPEngine.Input.Input
 import FRPEngine.Input.Types as I
+import FRPEngine.Input.Utils
 import FRPEngine.Types
 import Level
+import Linear
 import Render.SDL.Render
 import qualified SDL as S
 import qualified SDL.Font as F
@@ -29,20 +31,20 @@ runPhysical state@(PhysicalState (StretchCollObj origSize (CollObj iPC iP)) iE) 
   proc input -> do
     p <- playerRun iP origSize -< input
     returnA -< (player . collObj . obj) .~ p $ state
-      -- PhysicalState (StretchCollObj origSize (CollObj iPC p)) iE
 
 run :: GameState -> SF InputState (GameState, Event GameState)
-run (GameState (CameraState iZ) p alive) =
-  proc input -> do
-    physical <- runPhysical p -< input
-    alive <- collidedDeathSwitch -< physical
-    returnA -<
-      ( ( GameState
-            (CameraState iZ)
-            physical
-            alive
-        ),
-        if alive then NoEvent else Event initialGame)
+run (GameState (CameraState iZ) p alive) = proc input -> do
+  -- zoom <- accumHoldBy (accumLimit (V2 30 1)) iZ -< Event (input ^. I.zoom)
+  physical <- runPhysical p -< input
+  alive <- collidedDeathSwitch -< physical
+  returnA -<
+    ( ( GameState
+          (CameraState iZ)
+          physical
+          alive
+      ),
+      if alive then NoEvent else Event initialGame
+    )
 
 runDeathResetSwitch :: GameState -> SF InputState GameState
 runDeathResetSwitch game =
