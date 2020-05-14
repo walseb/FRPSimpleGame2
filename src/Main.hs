@@ -74,7 +74,7 @@ update origGameState mvar =
   proc events -> do
     newInputState <- accumHoldBy inputStateUpdate defaultKeybinds -< events
     gameState <- runDeathResetSwitch origGameState -< newInputState
-    let quit = (fromJust (newInputState ^. I.quit ^? pressed))
+    let quit = (fromJust (newInputState ^. I.quit ^? close))
     let quit' =
           if quit
             then seq (unsafePerformIO (putMVar mvar gameState)) True
