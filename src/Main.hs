@@ -11,7 +11,7 @@ import Control.Lens
 import Control.Monad.IO.Class
 import Data.Maybe
 import FRP.Yampa
-import FRPEngine.Collision.GJK
+import FRPEngine.Physics.Collision.GJK
 import FRPEngine.Init
 import FRPEngine.Input.Input
 import FRPEngine.Input.Types as I
@@ -25,16 +25,16 @@ import qualified SDL.Font as F
 import SDL.Image as SI
 import System.IO.Unsafe
 import Types
+import Input
 
-runPhysical :: PhysicalState -> SF InputState PhysicalState
+runPhysical :: PhysicalState -> SF [Input] PhysicalState
 runPhysical state@(PhysicalState (StretchCollObj origSize (CollObj iPC iP)) iE) =
   proc input -> do
     p <- playerRun iP origSize -< input
     returnA -< (player . collObj . obj) .~ p $ state
 
-run :: GameState -> SF InputState (GameState, Event GameState)
+run :: GameState -> SF [Input] (GameState, Event GameState)
 run (GameState (CameraState iZ) p alive) = proc input -> do
-  -- zoom <- accumHoldBy (accumLimit (V2 30 1)) iZ -< Event (input ^. I.zoom)
   physical <- runPhysical p -< input
   alive <- collidedDeathSwitch -< physical
   returnA -<
@@ -46,7 +46,7 @@ run (GameState (CameraState iZ) p alive) = proc input -> do
       if alive then NoEvent else Event initialGame
     )
 
-runDeathResetSwitch :: GameState -> SF InputState GameState
+runDeathResetSwitch :: GameState -> SF [Input] GameState
 runDeathResetSwitch game =
   switch
     (run game)
@@ -72,9 +72,9 @@ collidedDeathSwitch =
 update :: GameState -> MVar GameState -> SF (Event [S.Event]) (GameState, Bool)
 update origGameState mvar =
   proc events -> do
-    newInputState <- accumHoldBy inputStateUpdate defaultKeybinds -< events
+    newInputState <- accumHoldBy updateInput keybinds -< events
     gameState <- runDeathResetSwitch origGameState -< newInputState
-    let quit = (fromJust (newInputState ^. I.quit ^? close))
+    let quit = quitKey newInputState
     let quit' =
           if quit
             then seq (unsafePerformIO (putMVar mvar gameState)) True

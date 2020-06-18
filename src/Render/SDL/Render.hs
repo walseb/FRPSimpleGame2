@@ -6,6 +6,7 @@ import FRPEngine.Render.SDL.Primitives
 import qualified SDL as S
 import FRPEngine.Types
 import Types
+import Control.Monad
 
 render :: S.Renderer -> Resources -> (GameState, Bool) -> IO Bool
 render renderer res (GameState (CameraState zoomLevel) (PhysicalState player enemies) alive, exit) =
@@ -13,9 +14,7 @@ render renderer res (GameState (CameraState zoomLevel) (PhysicalState player ene
     S.rendererDrawColor renderer S.$= S.V4 0 0 0 255
     S.clear renderer
 
-    case alive of
-      True -> renderSpr (player ^. (collObj . obj))
-      False -> pure ()
+    when alive $ renderSpr (player ^. (collObj . obj))
 
     sequence_ $ renderSpr . (^. (collObj . obj)) <$> enemies
 

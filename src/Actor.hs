@@ -5,11 +5,11 @@ module Actor where
 import Control.Lens
 import Data.Coerce
 import FRP.Yampa
-import FRPEngine.Input.Utils (vectorizeMovement)
 import FRPEngine.Input.Types
 import FRPEngine.Types
-import FRPEngine.YampaUtils.Types ()
+import FRPEngine.Yampa.Types ()
 import Linear
+import Input
 
 speed :: (Num a) => V2 a
 speed = V2 1000 500
@@ -23,10 +23,10 @@ type Pos a = V2 a
 type Size a = V2 a
 type Vel a = V2 a
 
-xMove :: (RealFloat a) => a
+xMove :: (Number a) => a
 xMove = 50
 
-move :: (RealFloat a) => (Pos a, Size a, Vel a, Size a) -> SF (MoveKeys a) (Pos a, Size a, Vel a)
+move :: (Number a) => (Pos a, Size a, Vel a, Size a) -> SF (MoveKeys a) (Pos a, Size a, Vel a)
 move (V2 iPX iPY, size, a, origSize) = proc dir -> do
   -- Pos
   vel <- moveNoBackSwitch a -< dir
@@ -40,25 +40,25 @@ move (V2 iPX iPY, size, a, origSize) = proc dir -> do
     let pos = coerce <$> V2 posX' posY
      in (pos, size, vel)
 
-moveVel :: (RealFloat a) => Vel a -> SF (MoveKeys a) (Vel a, Event (Vel a))
+moveVel :: (Number a) => Vel a -> SF (MoveKeys a) (Vel a, Event (Vel a))
 moveVel initVel = proc dir -> do
   vel <- integralFrom initVel -< (dir * speed)
   returnA -< (vel, if (vel ^. _x) < xMove then Event (V2 xMove (vel ^. _y)) else NoEvent)
 
-moveNoBackSwitch :: (RealFloat a) => Vel a -> SF (MoveKeys a) (Vel a)
+moveNoBackSwitch :: (Number a) => Vel a -> SF (MoveKeys a) (Vel a)
 moveNoBackSwitch initVel =
   switch
     (moveVel initVel)
     moveNoBackSwitch
 
-sizeRun :: (RealFloat a) => Size a -> SF (V2 a) (Size a)
+sizeRun :: (Number a) => Size a -> SF (V2 a) (Size a)
 sizeRun origSize = proc vel -> do
   let vel' = (V2 (vel ^. _x) ((vel ^. _y) - (vel ^. _x)))
   returnA -< (origSize / 2) + (keepMinimumSize <$> ((origSize / 2) + (vel' * sizeSpeed)))
     where
       keepMinimumSize a = if a < 0 then 0 else a
 
-playerRun :: (RealFloat a) => Obj a _b -> Size a -> SF InputState (Obj a _b)
+playerRun :: (Number a) => Obj a _b -> Size a -> SF [Input] (Obj a _b)
 playerRun initObj origSize = proc input -> do
-  (pos', size', vel') <- move (initObj ^. pos, initObj ^. size, initObj ^. vel, origSize) -< vectorizeMovement (input ^. movement)
+  (pos', size', vel') <- move (initObj ^. pos, initObj ^. size, initObj ^. vel, origSize) -< moveKey input
   returnA -< (pos .~ pos') . (size .~ size') . (vel .~ vel') $ initObj
